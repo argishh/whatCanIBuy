@@ -21,6 +21,10 @@ def select_frames_in_uniform_intervals(video_path, num_frames=20, blur_threshold
     """
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    if num_frames > total_frames:
+        num_frames = total_frames
+    
     interval_size = total_frames // num_frames  # Divide the video into equal intervals
     
     selected_frames = []
@@ -32,7 +36,7 @@ def select_frames_in_uniform_intervals(video_path, num_frames=20, blur_threshold
         
         for attempt in range(max_attempts):
             # Randomly sample a frame within the interval
-            frame_idx = first_frame + attempt//interval_size 
+            frame_idx = first_frame + attempt % interval_size 
             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
             ret, frame = cap.read()
             

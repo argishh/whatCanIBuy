@@ -1,7 +1,10 @@
-import cv2
 import os
-from tqdm import tqdm
+
+import cv2
 from rich import print
+from tqdm import tqdm
+from ultralytics import YOLO
+
 
 def is_frame_blurry(frame, threshold=80):
     """
@@ -10,6 +13,7 @@ def is_frame_blurry(frame, threshold=80):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
     return laplacian_var < threshold
+
 
 def select_frames_in_uniform_intervals(video_path, num_frames=20, blur_threshold=80, max_attempts=5):
     """
@@ -54,6 +58,50 @@ def select_frames_in_uniform_intervals(video_path, num_frames=20, blur_threshold
 
     cap.release()
     return selected_frames
+
+
+def detect_shoppable_items(frames, model="yolov8n.pt"):
+    """
+    Add bounding boxes with labels to the frames using YOLOv8.
+    """
+    model = YOLO(model)
+    items = []
+
+    print('\n[green1]Detecting shoppable items...[/]')
+    for frame in frames:
+        results = model(frame)
+        annotated_frame = frame.copy()
+
+        for result in results:
+            for box in result.boxes.data.tolist():
+                x1, y1, x2, y2, confidence, cls = box
+                label = f"{result.names[int(cls)]} {confidence:.2f}"
+
+                # Draw bounding box
+                cv2.rectangle(annotated_frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+                
+                # Draw label
+                label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                label_y = max(int(y1) - 10, label_size[1])
+                cv2.rectangle(
+                    annotated_frame,
+                    (int(x1), label_y - label_size[1]),
+                    (int(x1) + label_size[0], label_y),
+                    (0, 255, 0),
+                    -1,)
+                
+                cv2.putText(
+                    annotated_frame,
+                    label,
+                    (int(x1), label_y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 0),
+                    1,)
+
+        items.append(annotated_frame)
+    return items
+
 
 def save_frames(frames, output_dir):
     """

@@ -1,0 +1,16 @@
+# Environments
+.venv
+.env
+
+# Data
+*.mp4
+
+# Outputs
+shoppable_items/
+video.mp4
+
+# Models
+*.pt
+
+# Cache
+__pycache__/
